@@ -1,93 +1,38 @@
-import sounddevice as sd
-from scipy.io.wavfile import write
-import whisper
-from duckduckgo_search import DDGS
-import ollama
-import pyttsx3
+"""
+Main entry point for Agentic AI application.
 
-# -----------------------
-# RECORD AUDIO
-# -----------------------
-
-duration = 5  # seconds
-sample_rate = 44100
-
-print("Speak now...")
-
-audio = sd.rec(
-    int(duration * sample_rate),
-    samplerate=sample_rate,
-    channels=1,
-    dtype='int16'
-)
-
-sd.wait()
-
-write("input.wav", sample_rate, audio)
-
-print("Audio recorded.")
-
-# -----------------------
-# SPEECH TO TEXT
-# -----------------------
-
-model = whisper.load_model("base")
-
-result = model.transcribe("input.wav")
-
-query = result["text"]
-
-print(f"\nYou said: {query}")
-
-# -----------------------
-# WEB SEARCH
-# -----------------------
-
-search_results = []
-
-with DDGS() as ddgs:
-    results = ddgs.text(query, max_results=3)
-
-    for r in results:
-        search_results.append(r["body"])
-
-search_text = "\n".join(search_results)
-
-# -----------------------
-# ASK LLM
-# -----------------------
-
-prompt = f"""
-Answer the user's question using the web results below.
-
-Question:
-{query}
-
-Web Results:
-{search_text}
+This application provides a voice-based AI assistant that:
+1. Records audio from the user
+2. Transcribes it to text using Whisper
+3. Searches the web for relevant information
+4. Queries an LLM for intelligent responses
+5. Speaks the response back to the user
 """
 
-response = ollama.chat(
-    model="qwen3:4b",
-    messages=[
-        {
-            "role": "user",
-            "content": prompt
-        }
-    ]
-)
+from src.audio import record_audio
+from src.nlp import transcribe_audio
+from src.search import search_web
+from src.llm import query_llm
+from src.speak import speak
 
-answer = response["message"]["content"]
 
-print("\nAssistant:")
-print(answer)
+def main() -> None:
+    """Run the main agentic AI workflow."""
+    # Record audio from user
+    record_audio(duration=5, sample_rate=44100, output_file="input.wav")
+    
+    # Transcribe audio to text
+    query = transcribe_audio(audio_file="input.wav", model_size="base")
+    
+    # Search the web for context
+    search_results = search_web(query, max_results=3)
+    
+    # Query LLM with question and search results
+    answer = query_llm(query, search_results, model="qwen3:4b")
+    
+    # Speak the answer
+    speak(answer)
 
-# -----------------------
-# TEXT TO SPEECH
-# -----------------------
 
-engine = pyttsx3.init()
-
-engine.say(answer)
-
-engine.runAndWait()
+if __name__ == "__main__":
+    main()
