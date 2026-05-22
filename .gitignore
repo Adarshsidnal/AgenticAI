@@ -1,10 +1,9 @@
 .env
 # Python cache
-__pycache__/
-*.py[cod]
+src/__pycache__/
 
 # Virtual environments
-.venv/
+src/__pycache__/
 
 # macOS
 .DS_Store
